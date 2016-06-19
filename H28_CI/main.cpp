@@ -52,13 +52,13 @@ int main(void)
 		C_UART_R(EU_UART1),
 	};
 	
-	C_UART_T uart_t_main(EU_UART0);
+	C_UART_T _uart_t_main(EU_UART0);
 	
-	C_IO_OUT io_o_led(EI_PORTA,0xff);
+	C_IO_OUT _io_o_led(EI_PORTA,0xff);
 	
-	C_IO_IN io_i_sw(EI_PORTB,0x1e);
+	C_IO_IN _io_i_sw(EI_PORTB,0x1e);
 	
-	C_IO_IN_pin io_i_link[2] =
+	C_IO_IN_pin _arr_io_i_link[2] =
 	{
 		C_IO_IN_pin(EI_PORTD,EI_IO4),
 		C_IO_IN_pin(EI_PORTD,EI_IO5)
@@ -66,16 +66,16 @@ int main(void)
 	
 	INI_LCD();
 	
-	const T_DATA data_o_standard[4] = {0x3f,0x7f,0x8f,0xc0};
+	const T_DATA _temp_o_data[4] = {0x3f,0x7f,0x8f,0xc0};
 	
     while (1) 
     {
-		T_PORT sw = ((io_i_sw.In() >> 1) & 0x0f);
+		T_PORT _data_sw = ((_io_i_sw.In() >> 1) & 0x0f);
 		
-		E_LOGIC link[2] = 
+		E_LOGIC _arr_flag_link[2] = 
 		{
-			io_i_link[0].In(),
-			io_i_link[1].In()
+			_arr_io_i_link[0].In(),
+			_arr_io_i_link[1].In()
 		};
     }
 }
