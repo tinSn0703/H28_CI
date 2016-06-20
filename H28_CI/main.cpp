@@ -31,7 +31,7 @@
 #define	SIGN_STATE_1 2
 #define	SIGN_DATA	 3
 
-inline E_LOGIC F_In_BT_slave(C_UART_R &_arg_uart_r, T_DATA _arg_re_in_data[DATA_NUM_MAIN])
+E_LOGIC F_In_BT_slave(C_UART_R &_arg_uart_r, T_DATA _arg_re_in_data[DATA_NUM_MAIN])
 {	
 	T_NUM num_data = 0;
 	
@@ -110,34 +110,20 @@ int main(void)
 		
 		_data_led |= ((_flag_link_0 << LED_LINK_0) | (_flag_link_1 << LED_LINK_1));
 		
-		T_DATA _arr_i_data_bt_0[DATA_NUM_MAIN] = {};
+		T_DATA _arr_i_data_bt_0[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
 		E_LOGIC _flag_succe_0 = FALES;
 			
-		T_DATA _arr_i_data_bt_1[DATA_NUM_MAIN] = {};
+		T_DATA _arr_i_data_bt_1[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
 		E_LOGIC _flag_succe_1 = FALES;
 
 		if (_flag_link_0 == TRUE)
 		{
 			_flag_succe_0 = F_In_BT_slave(_uart_r_bt_0,_arr_i_data_bt_0);
 		}
-		else
-		{
-			for (usint i = 0; i < DATA_NUM_MAIN; i++)
-			{
-				_arr_i_data_bt_0[i] = _arr_temp_o_data[i];
-			}
-		}
 		
 		if (_flag_link_1 == TRUE)
 		{
 			_flag_succe_1 = F_In_BT_slave(_uart_r_bt_1,_arr_i_data_bt_1);
-		}
-		else
-		{
-			for (usint i = 0; i < DATA_NUM_MAIN; i++)
-			{
-				_arr_i_data_bt_1[i] = _arr_temp_o_data[i];
-			}
 		}
 		
 		switch (_data_led & 0x03)
