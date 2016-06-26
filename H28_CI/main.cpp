@@ -37,7 +37,7 @@ E_LOGIC F_In_BT_slave(C_UART_R &_arg_uart_r, T_DATA _arg_re_in_data[DATA_NUM_MAI
 	
 	_arg_uart_r.Check();
 	
-	wdt_reset();
+//	wdt_reset();
 	
 	if (_arg_uart_r.Ret_flag() == EU_ERROR)
 	{
@@ -53,12 +53,19 @@ E_LOGIC F_In_BT_slave(C_UART_R &_arg_uart_r, T_DATA _arg_re_in_data[DATA_NUM_MAI
 	{
 		T_DATA temp_data = _arg_uart_r.In();
 		
-		_arg_re_in_data[(temp_data >> 6) & 3] = temp_data;
-		
-		num_data |= (1 << ((temp_data >> 6) & 3));
+		if (temp_data != IN_ERROR)
+		{
+			_arg_re_in_data[(temp_data >> 6) & 3] = temp_data;
+			
+			num_data |= (1 << ((temp_data >> 6) & 3));
+		}
+		else
+		{
+			break;
+		}
 	}
 	
-	wdt_reset();
+//	wdt_reset();
 	
 	return TRUE;
 }
@@ -72,7 +79,7 @@ inline void F_Out_main(C_UART_T &_arg_uart_t, const T_DATA _arg_out_data[DATA_NU
 		_delay_us(20);
 	}
 	
-	wdt_reset();
+//	wdt_reset();
 }
 
 int main(void)
@@ -91,11 +98,11 @@ int main(void)
 	C_IO_IN_pin _io_i_link_0(EI_PORTD,EI_IO4);
 	C_IO_IN_pin _io_i_link_1(EI_PORTD,EI_IO5);;
 	
-	wdt_reset();
-	WDTCSR |= ((1<<WDCE)|(1<<WDE));
-	WDTCSR = ((1<<WDE)|(1<<WDP2)|(1<<WDP0));	//wdt0.5[s]
+//	wdt_reset();
+//	WDTCSR |= ((1<<WDCE)|(1<<WDE));
+//	WDTCSR = ((1<<WDE)|(1<<WDP2)|(1<<WDP0));	//wdt0.5[s]
 	
-	sei();
+//	sei();
 	
 	INI_LCD();
 	
@@ -103,7 +110,11 @@ int main(void)
 	
     while (1) 
     {
-		T_PORT _data_led = ~((_io_i_sw.In() >> 1) & 0x0f);
+		T_PORT _data_led = ((_io_i_sw.In() >> 1) & 0x0f);
+		
+		const T_NUM _priority_num = _data_led & 0x03;
+		
+		const T_NUM _display_num  = (_data_led >> 2) & 0x03;
 		
 		const E_LOGIC _flag_link_0 = _io_i_link_0.In();
 		const E_LOGIC _flag_link_1 = _io_i_link_1.In();
@@ -126,7 +137,9 @@ int main(void)
 			_flag_succe_1 = F_In_BT_slave(_uart_r_bt_1,_arr_i_data_bt_1);
 		}
 		
-		switch (_data_led & 0x03)
+//		wdt_reset();
+		
+		switch (_priority_num)
 		{
 			case PRIORITY_O:
 			{
@@ -187,20 +200,21 @@ int main(void)
 			}
 		}
 		
-		char _str_lcd_o[16] = {};
-		char _str_lcd_u[16] = {};
+//		wdt_reset();
 		
-		switch ((_data_led >> 2) & 0x03)
+		Lcd_clr_dis();
+		
+		switch (_display_num)
 		{
 			case SIGN_DATA:
 			{
-				Lcd_set_str(_str_lcd_o,0,"RX_0");
-				Lcd_set_str(_str_lcd_u,0,"RX_1");
+				Lcd_put_str(0x00 ,"RX_0");
+				Lcd_put_str(0x40 ,"RX_1");
 				
 				for (usint i = 0; i < DATA_NUM_MAIN; i++)
 				{
-					Lcd_set_num(_str_lcd_o, 4+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
-					Lcd_set_num(_str_lcd_u, 4+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
+					Lcd_put_num(0x05+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
+					Lcd_put_num(0x45+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
 				}
 				
 				break;
@@ -209,20 +223,20 @@ int main(void)
 			{
 				if (_flag_link_0 == TRUE)
 				{
-					Lcd_set_str(_str_lcd_o, 0, "RX_0 connect");
+					Lcd_put_str(0x00, "RX_0 connect");
 				}
 				else
 				{
-					Lcd_set_str(_str_lcd_o, 0, "RX_0 disconnect");
+					Lcd_put_str(0x00, "RX_0 disconnect");
 				}
 				
 				if (_flag_link_1 == TRUE)
 				{
-					Lcd_set_str(_str_lcd_u, 0, "RX_1 connect");
+					Lcd_put_str(0x40, "RX_1 connect");
 				}
 				else
 				{
-					Lcd_set_str(_str_lcd_u, 0, "RX_1 disconnect");
+					Lcd_put_str(0x40, "RX_1 disconnect");
 				}
 				
 				break;
@@ -231,16 +245,16 @@ int main(void)
 			{
 				if (_flag_link_0 == TRUE)
 				{
-					Lcd_set_str(_str_lcd_o, 0, "RX_0 connect");
+					Lcd_put_str(0x00, "RX_0 connect");
 				}
 				else
 				{
-					Lcd_set_str(_str_lcd_o, 0, "RX_0 disconnect");
+					Lcd_put_str(0x00, "RX_0 disconnect");
 				}
 				
 				for (usint i = 0; i < DATA_NUM_MAIN; i++)
 				{
-					Lcd_set_num(_str_lcd_u, 4+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
+					Lcd_put_num(0x40+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
 				}
 				
 				break;
@@ -249,24 +263,23 @@ int main(void)
 			{
 				if (_flag_link_1 == TRUE)
 				{
-					Lcd_set_str(_str_lcd_o, 0, "RX_1 connect");
+					Lcd_put_str(0x00, "RX_1 connect");
 				}
 				else
 				{
-					Lcd_set_str(_str_lcd_o, 0, "RX_1 disconnect");
+					Lcd_put_str(0x00, "RX_1 disconnect");
 				}
 				
 				for (usint i = 0; i < DATA_NUM_MAIN; i++)
 				{
-					Lcd_set_num(_str_lcd_u, 4+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
+					Lcd_put_num(0x40+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
 				}
 				
 				break;
 			}
 		}
 		
-		Lcd_put_str(0x00,_str_lcd_o);
-		Lcd_put_str(0x40,_str_lcd_u);
+//		wdt_reset();
 		
 		if ((_flag_link_0 & _flag_link_1) == FALES)	_delay_ms(100);
 		
