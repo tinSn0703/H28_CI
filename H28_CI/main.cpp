@@ -32,12 +32,8 @@
 #define	SIGN_DATA	 3
 
 E_LOGIC F_In_BT_slave(C_UART_R &_arg_uart_r, T_DATA _arg_re_in_data[DATA_NUM_MAIN])
-{	
-	T_NUM num_data = 0;
-	
+{		
 	_arg_uart_r.Check();
-	
-//	wdt_reset();
 	
 	if (_arg_uart_r.Ret_flag() == EU_ERROR)
 	{
@@ -49,6 +45,9 @@ E_LOGIC F_In_BT_slave(C_UART_R &_arg_uart_r, T_DATA _arg_re_in_data[DATA_NUM_MAI
 		return FALES;
 	}
 	
+	usint i = 0;
+	T_NUM num_data = 0;
+	
 	while (num_data != 0x0f)
 	{
 		T_DATA temp_data = _arg_uart_r.In();
@@ -59,13 +58,11 @@ E_LOGIC F_In_BT_slave(C_UART_R &_arg_uart_r, T_DATA _arg_re_in_data[DATA_NUM_MAI
 			
 			num_data |= (1 << ((temp_data >> 6) & 3));
 		}
-		else
-		{
-			break;
-		}
+		
+		if (i == 15)	break;
+		
+		i++;
 	}
-	
-//	wdt_reset();
 	
 	return TRUE;
 }
@@ -75,11 +72,7 @@ inline void F_Out_main(C_UART_T &_arg_uart_t, const T_DATA _arg_out_data[DATA_NU
 	for (usint i = 0; i < DATA_NUM_MAIN; i++)
 	{
 		_arg_uart_t.Out(_arg_out_data[i]);
-		
-		_delay_us(20);
 	}
-	
-//	wdt_reset();
 }
 
 int main(void)
@@ -98,34 +91,23 @@ int main(void)
 	C_IO_IN_pin _io_i_link_0(EI_PORTD,EI_IO4);
 	C_IO_IN_pin _io_i_link_1(EI_PORTD,EI_IO5);;
 	
-//	wdt_reset();
-//	WDTCSR |= ((1<<WDCE)|(1<<WDE));
-//	WDTCSR = ((1<<WDE)|(1<<WDP2)|(1<<WDP0));	//wdt0.5[s]
-	
-//	sei();
-	
 	INI_LCD();
-	
-	const T_DATA _arr_temp_o_data[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
 	
     while (1) 
     {
+		T_DATA _arr_i_data_bt_0[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
+		T_DATA _arr_i_data_bt_1[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
+			
+		E_LOGIC _flag_succe_0 = FALES;
+		E_LOGIC _flag_succe_1 = FALES;
+		
 		T_PORT _data_led = ((_io_i_sw.In() >> 1) & 0x0f);
-		
-		const T_NUM _priority_num = _data_led & 0x03;
-		
-		const T_NUM _display_num  = (_data_led >> 2) & 0x03;
 		
 		const E_LOGIC _flag_link_0 = _io_i_link_0.In();
 		const E_LOGIC _flag_link_1 = _io_i_link_1.In();
 		
-		_data_led |= ((_flag_link_0 << LED_LINK_0) | (_flag_link_1 << LED_LINK_1));
-		
-		T_DATA _arr_i_data_bt_0[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
-		E_LOGIC _flag_succe_0 = FALES;
-			
-		T_DATA _arr_i_data_bt_1[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
-		E_LOGIC _flag_succe_1 = FALES;
+		const T_NUM _priority_num = _data_led & 0x03;
+		const T_NUM _display_num  = (_data_led >> 2) & 0x03;
 
 		if (_flag_link_0 == TRUE)
 		{
@@ -136,8 +118,6 @@ int main(void)
 		{
 			_flag_succe_1 = F_In_BT_slave(_uart_r_bt_1,_arr_i_data_bt_1);
 		}
-		
-//		wdt_reset();
 		
 		switch (_priority_num)
 		{
@@ -155,6 +135,8 @@ int main(void)
 				}
 				else
 				{
+					const T_DATA _arr_temp_o_data[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
+					
 					F_Out_main(_uart_t_main,_arr_temp_o_data);
 				}
 				
@@ -174,6 +156,8 @@ int main(void)
 				}
 				else
 				{
+					const T_DATA _arr_temp_o_data[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
+					
 					F_Out_main(_uart_t_main,_arr_temp_o_data);
 				}
 				
@@ -193,6 +177,8 @@ int main(void)
 				}
 				else
 				{
+					const T_DATA _arr_temp_o_data[DATA_NUM_MAIN] = {0x3f,0x7f,0x8f,0xc0};
+					
 					F_Out_main(_uart_t_main,_arr_temp_o_data);
 				}
 				
@@ -200,88 +186,98 @@ int main(void)
 			}
 		}
 		
-//		wdt_reset();
+		static uint _count_lcd = 1;
 		
-		Lcd_clr_dis();
+		if ((_flag_link_0 & _flag_link_1) == FALES)	_count_lcd = 20;
 		
-		switch (_display_num)
+		if (_count_lcd != 20)
 		{
-			case SIGN_DATA:
+			_count_lcd++;
+		}
+		else
+		{
+			Lcd_clr_dis();
+			_count_lcd = 1;
+			
+			switch (_display_num)
 			{
-				Lcd_put_str(0x00 ,"RX_0");
-				Lcd_put_str(0x40 ,"RX_1");
-				
-				for (usint i = 0; i < DATA_NUM_MAIN; i++)
+				case SIGN_DATA:
 				{
-					Lcd_put_num(0x05+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
-					Lcd_put_num(0x45+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
+					Lcd_put_str(0x00 ,"RX_0");
+					Lcd_put_str(0x40 ,"RX_1");
+					
+					for (usint i = 0; i < DATA_NUM_MAIN; i++)
+					{
+						Lcd_put_num(0x05+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
+						Lcd_put_num(0x45+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
+					}
+					
+					break;
 				}
-				
-				break;
-			}
-			case SIGN_LINK:
-			{
-				if (_flag_link_0 == TRUE)
+				case SIGN_LINK:
 				{
-					Lcd_put_str(0x00, "RX_0 connect");
+					if (_flag_link_0 == TRUE)
+					{
+						Lcd_put_str(0x00, "RX_0 connect");
+					}
+					else
+					{
+						Lcd_put_str(0x00, "RX_0 disconnect");
+					}
+					
+					if (_flag_link_1 == TRUE)
+					{
+						Lcd_put_str(0x40, "RX_1 connect");
+					}
+					else
+					{
+						Lcd_put_str(0x40, "RX_1 disconnect");
+					}
+					
+					break;
 				}
-				else
+				case SIGN_STATE_0:
 				{
-					Lcd_put_str(0x00, "RX_0 disconnect");
+					if (_flag_link_0 == TRUE)
+					{
+						Lcd_put_str(0x00, "RX_0 connect");
+					}
+					else
+					{
+						Lcd_put_str(0x00, "RX_0 disconnect");
+					}
+					
+					for (usint i = 0; i < DATA_NUM_MAIN; i++)
+					{
+						Lcd_put_num(0x40+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
+					}
+					
+					break;
 				}
-				
-				if (_flag_link_1 == TRUE)
+				case SIGN_STATE_1:
 				{
-					Lcd_put_str(0x40, "RX_1 connect");
+					if (_flag_link_1 == TRUE)
+					{
+						Lcd_put_str(0x00, "RX_1 connect");
+					}
+					else
+					{
+						Lcd_put_str(0x00, "RX_1 disconnect");
+					}
+					
+					for (usint i = 0; i < DATA_NUM_MAIN; i++)
+					{
+						Lcd_put_num(0x40+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
+					}
+					
+					break;
 				}
-				else
-				{
-					Lcd_put_str(0x40, "RX_1 disconnect");
-				}
-				
-				break;
-			}			
-			case SIGN_STATE_0:
-			{
-				if (_flag_link_0 == TRUE)
-				{
-					Lcd_put_str(0x00, "RX_0 connect");
-				}
-				else
-				{
-					Lcd_put_str(0x00, "RX_0 disconnect");
-				}
-				
-				for (usint i = 0; i < DATA_NUM_MAIN; i++)
-				{
-					Lcd_put_num(0x40+(i*3), _arr_i_data_bt_0[i], 2, ED_16);
-				}
-				
-				break;
-			}
-			case SIGN_STATE_1:
-			{
-				if (_flag_link_1 == TRUE)
-				{
-					Lcd_put_str(0x00, "RX_1 connect");
-				}
-				else
-				{
-					Lcd_put_str(0x00, "RX_1 disconnect");
-				}
-				
-				for (usint i = 0; i < DATA_NUM_MAIN; i++)
-				{
-					Lcd_put_num(0x40+(i*3), _arr_i_data_bt_1[i], 2, ED_16);
-				}
-				
-				break;
 			}
 		}
 		
-//		wdt_reset();
-		
 		if ((_flag_link_0 & _flag_link_1) == FALES)	_delay_ms(100);
+		
+		_data_led |= ((_flag_link_0 << LED_LINK_0) | (_flag_link_1 << LED_LINK_1));
 		
 		_io_o_led.Out(_data_led);
     }
